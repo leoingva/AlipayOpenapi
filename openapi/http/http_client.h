@@ -21,7 +21,7 @@ using std::map;
 #ifdef _DEBUG
 #define DebugLog(format,...)    printf("[" __FILE__ ":%04d]\n" format "\n\n", __LINE__, ##__VA_ARGS__)
 #else
-#define DebugLog(format,...)     
+#define DebugLog(format,...)     // printf("[" __FILE__ ":%04d]\n" format "\n\n", __LINE__, ##__VA_ARGS__)
 #endif
 
 typedef map<string, string> HeaderMap;

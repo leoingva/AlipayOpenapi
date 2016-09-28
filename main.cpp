@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
         DebugLog("code:%s", respCode.c_str());
     } else {
         DebugLog("cannot get code from response");
+		goto RET;
     }
 
     iter = respMap.find("msg");
@@ -100,6 +101,7 @@ int main(int argc, char *argv[])
 		OutputDebugStringA(respMsg.append("\n").c_str());
     } else {
         DebugLog("cannot get msg from response");
+		goto RET;
     }
 
 
@@ -111,12 +113,16 @@ int main(int argc, char *argv[])
 		std::string  str = "C:\\Progra~1\\Intern~1\\iexplore ";
 		str.append("http://api.qrserver.com/v1/create-qr-code/?data=").append(respMsg);
 		str.append("&size = 100x100");
-		system(str.c_str());
+		//system(str.c_str());
+		std::string str1 = "START ";
+		str1.append(str);
+		system(str1.c_str());
+		Sleep(2000);
 	}
 	else {
 		DebugLog("cannot get qr_code from response");
+		goto RET;
 	}
-	Sleep(2000);
 	//
 	//precreate done
 	//
@@ -124,7 +130,7 @@ int main(int argc, char *argv[])
 	method = "alipay.trade.query";
 
 	bool success = false;
-	int cnt = 0;
+	int cnt = 60;
 	do
 	{
 		respMap = openapiClient.invoke(method, contentMap);
@@ -136,14 +142,15 @@ int main(int argc, char *argv[])
 			if(respMsg == "TRADE_SUCCESS")
 				success = true;
 			if (respMsg == "TRADE_CLOSED")
-				cnt = 100;
+				cnt = 0;
 		}
 		else {
-			DebugLog("cannot get code from response");
+			DebugLog("cannot get code from response.");
 		}
-		cnt++;
+		cnt-=2;
+		printf("Time left : %ds\n", cnt);
 		Sleep(2000);
-	} while (!success && cnt < 10);
+	} while (!success && cnt >0);
 
 	if (success)
 	{
@@ -165,8 +172,25 @@ int main(int argc, char *argv[])
 			DebugLog("cannot get code from response");
 		}
 	}
+RET:
     system("pause");
     return 0;
+}
+
+
+#include <time.h>
+std::string getTradeNo()
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+	char buffer[128];
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", timeinfo);
+	std::string retstr(buffer);
+	printf("Trade No = %s\n", retstr.c_str());
+	return retstr;
+
 }
 
 /**
@@ -174,8 +198,9 @@ int main(int argc, char *argv[])
  */
 JsonMap getPrecreateContent() {
     JsonMap contentMap;
-    contentMap.insert(JsonMap::value_type(JsonType("out_trade_no"), JsonType("20160606121225")));
-    contentMap.insert(JsonMap::value_type(JsonType("total_amount"), JsonType(0.1)));
+    //contentMap.insert(JsonMap::value_type(JsonType("out_trade_no"), JsonType("20160606121229")));
+	contentMap.insert(JsonMap::value_type(JsonType("out_trade_no"), JsonType(getTradeNo())));
+    contentMap.insert(JsonMap::value_type(JsonType("total_amount"), JsonType(22.0)));
     contentMap.insert(JsonMap::value_type(JsonType("subject"), JsonType("iphone7")));
     return contentMap;
 }
