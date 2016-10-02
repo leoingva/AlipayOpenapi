@@ -47,7 +47,7 @@ string aliPubKey = "-----BEGIN PUBLIC KEY-----\n"
 /** some examples **/
 JsonMap getPrecreateContent();
 
-int main(int argc, char *argv[])
+int main1(int argc, char *argv[])
 {
 
     /** 实例化OpenapiClient工具类 **/

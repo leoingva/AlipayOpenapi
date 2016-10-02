@@ -138,6 +138,7 @@
     <ClCompile Include="openapi\json\json_type.cpp" />
     <ClCompile Include="openapi\json\json_util.cpp" />
     <ClCompile Include="openapi\openapi_client.cpp" />
+    <ClCompile Include="WeixinPayAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="openapi\http\http_client.h" />
@@ -145,6 +146,7 @@
     <ClInclude Include="openapi\json\json_type.h" />
     <ClInclude Include="openapi\json\json_util.h" />
     <ClInclude Include="openapi\openapi_client.h" />
+    <ClInclude Include="WeixinPayAPI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

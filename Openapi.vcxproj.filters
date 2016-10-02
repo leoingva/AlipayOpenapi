@@ -29,6 +29,9 @@
     <ClCompile Include="openapi\openapi_client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WeixinPayAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="openapi\json\cJSON.h">
@@ -44,6 +47,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="openapi\openapi_client.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WeixinPayAPI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
