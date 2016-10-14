@@ -1,5 +1,4 @@
 #include "WeixinPayAPI.h"
-#pragma comment(lib, "libcurl.lib")
 
 WeixinPayAPI::WeixinPayAPI()
 {
@@ -31,7 +30,7 @@ int WeixinPayAPI::getTradeNo()
 	return 0;
 
 }
-#include<openssl\md5.h>
+#include "md5.h"
 int WeixinPayAPI::signature()
 {
 	string stringA = "";
@@ -48,9 +47,10 @@ int WeixinPayAPI::signature()
 	stringSignTemp = stringA += "key=";
 	stringSignTemp += key;
 	LOG0(stringSignTemp.c_str());
-	unsigned char out[64];
-	const unsigned char *in = (const unsigned char*)stringSignTemp.c_str();
-	MD5(in, MD5_DIGEST_LENGTH,out);
+	char out[32];
+	char *in = (char*)stringSignTemp.c_str();
+	int l = stringSignTemp.length();
+	GetMd5KeyString(in, l , out);
 	sign = string((const char*)out);
 	LOG0(sign.c_str());
 	return 0;
