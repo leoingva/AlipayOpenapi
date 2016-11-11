@@ -1,11 +1,21 @@
 #pragma once
 
-#include "stdlib.h"
-#include <iostream>
+//#include "stdlib.h"
+//#include <iostream>
+#include <sstream>//for std::ostringstream
+#include<Windows.h>//for OutputDebugStringA
 
-#include<Windows.h>
-#define LOG0(str) {OutputDebugStringA(str);OutputDebugStringA("\n");}
-#define LOG(format,...)  {char buf[256], *p = buf;va_list args;va_start(args, format);p += _vsnprintf(p, sizeof(buf) - 1, format, args);va_end(args);OutputDebugStringA(buf);OutputDebugStringA("\n");}
+#if defined(NDEBUG)
+#define dPrintL
+#define dPrint(format,...)
+#define dPrint1(var)
+#define dPrintA(var)
+#else
+#define dPrintL  {std::ostringstream oss; oss<<"["<<__FILE__<<":"<<__LINE__<<"]  ";OutputDebugStringA(oss.str().c_str());}//print current file and line
+#define dPrint(format,...) dPrintL{char buf[256]; sprintf(buf, format "\n", ##__VA_ARGS__);OutputDebugStringA(buf);}
+#define dPrint1(var)  dPrintL{std::ostringstream oss;oss<<#var<<" = "<<var<<std::endl; OutputDebugStringA(oss.str().c_str());}//print varilable name = value
+#define dPrintA(var) dPrintL{char buf[256]; sprintf(buf,#var" @ %p\n", var);OutputDebugStringA(buf);}//print a pointer
+#endif
 
 
 #define PAIRCNT 10
@@ -23,8 +33,7 @@ private:
 		unifiedorderURL = "https://api.mch.weixin.qq.com/pay/unifiedorder",
 		orderqueryURL = "https://api.mch.weixin.qq.com/pay/orderquery",
 		closeorderURL = "https://api.mch.weixin.qq.com/pay/closeorder",
-		deviceIP = "12.12.12.12",
-		nonce_str, sign, body, out_trade_no, total_fee; //need to be filled for each trade
+		deviceIP,nonce_str, sign, body, out_trade_no, total_fee; //need to be filled for each trade
 	struct KeyValuePair
 	{
 		string key;
@@ -45,11 +54,12 @@ private:
 public:
 	WeixinPayAPI();
 	~WeixinPayAPI();
+	std::string getstr();
+	std::string sendRequest();
 private:
 	int loadConfig();
 	int getIP();
-	int getTradeNo();
-	string getRandom();
+	int getTradeNoAndNonce_str();
 	int signature();
 };
 

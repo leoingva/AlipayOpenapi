@@ -1,9 +1,20 @@
 ﻿#include "openapi_client.h"
+#include <iostream>
+#include "stdlib.h"
 
+#define _DEBUG
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
+using namespace std;
 
 const string OpenapiClient::default_charset      = "utf-8";
 //const string OpenapiClient::default_url          = "https://openapi.alipay.com/gateway.do";
-const string OpenapiClient::default_url          = "https://openapi.alipaydev.com/gateway.do";
+// string OpenapiClient::default_url          = "https://openapi.alipaydev.com/gateway.do";
 const string OpenapiClient::default_sign_type    = "RSA";
 const string OpenapiClient::default_version      = "2.0";
 
@@ -16,21 +27,54 @@ const string OpenapiClient::KEY_TIMESTAMP        = "timestamp";
 const string OpenapiClient::KEY_VERSION          = "version";
 const string OpenapiClient::KEY_BIZ_CONTENT      = "biz_content";
 
+#define APPIDOK 1
+#define DURLOK 1
+#define PKEYOK 4
+#define ALIKEYOK 8
+#define ALLOK APPIDOK|DURLOK|PKEYOK|ALIKEYOK
+#define CFGFILENAME "config_Alipay.txt"
 
-OpenapiClient::OpenapiClient(const string &appId,
-                             const string &privateKey,
-                             const string &url,
-                             const string &charset,
-                             const string &alipayPublicKey)
-    : appId(appId),
-      privateKey(privateKey),
-      signType(default_sign_type),
-      version(default_version),
-      url(url),
-      charset(charset),
-      alipayPublicKey(alipayPublicKey) {
+// OpenapiClient::
+OpenapiClient* createNewClient()
+{
+	OpenapiClient* client = new OpenapiClient();
+	client->signType = OpenapiClient::default_sign_type;
+	client->version = OpenapiClient::default_version;
+	client->charset = OpenapiClient::default_charset;
+	int ret = client->readConfigFile();
+	//strcpy(p1->buf, OpenapiClient::default_sign_type.c_str());
+	//strcpy(p1->buf2, client->appId.c_str());
+	//p1->appId.assign("asfasdfasdf");
+	//p1->signType.assign("3333");
+	//return (OpenapiClient*) p1;
+	if (ret == ALLOK)
+	{ 
+		return client;
+	}
+	else
+	{
+		delete(client);
+		client = nullptr;
+		return nullptr;	
+	}
 
 }
+OpenapiClient::OpenapiClient()
+{
+}
+//OpenapiClient::OpenapiClient(const string &appId,
+//                             const string &privateKey,
+//                             const string &url,
+//                             const string &charset,
+//                             const string &alipayPublicKey)
+//    : appId(appId),
+//      privateKey(privateKey),
+//      signType(default_sign_type),
+//      version(default_version),
+//      url(url),
+//      charset(charset),
+//      alipayPublicKey(alipayPublicKey) {
+//}
 
 JsonMap OpenapiClient::invoke(const string &method, const JsonMap &contentMap, const StringMap &extendParamMap) {
 
@@ -265,4 +309,214 @@ string OpenapiClient::getUrl() {
 
 string OpenapiClient::getAlipayPublicKey() {
     return alipayPublicKey;
+}
+
+#include <time.h>
+std::string getTradeNo()
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+	char buffer[128];
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", timeinfo);
+	std::string tradeNo(buffer);
+	//printf("Trade No = %s\n", retstr.c_str());
+	dPrint1(tradeNo);
+	return tradeNo;
+
+}
+/**
+* 组装支付宝预下单业务请求
+*/
+JsonMap getPrecreateContent(string itemName, float itemPrice) {
+	JsonMap contentMap;
+	//contentMap.insert(JsonMap::value_type(JsonType("out_trade_no"), JsonType("20160606121229")));
+	contentMap.insert(JsonMap::value_type(JsonType("out_trade_no"), JsonType(getTradeNo())));
+	contentMap.insert(JsonMap::value_type(JsonType("total_amount"), JsonType(itemPrice)));
+	contentMap.insert(JsonMap::value_type(JsonType("subject"), JsonType(itemName)));
+	return contentMap;
+}
+
+#include <iostream>  
+#include <string>  
+#include <fstream>  
+int OpenapiClient::readConfigFile()
+{
+	fstream cfgFile;
+	cfgFile.open(CFGFILENAME);//打开文件      
+	if (!cfgFile.is_open())
+	{
+		dPrint("can not open cfg file!");
+		//cout << "can not open cfg file!" << endl;
+		return false;
+	}
+	char tmp[1000];
+	int ret = 0;
+	while (!cfgFile.eof())//循环读取每一行  
+	{
+		cfgFile.getline(tmp, 1000);//每行读取前1000个字符，1000个应该足够了  
+		string line(tmp);
+		if (line.size() == 0) { continue; }//空行跳过
+		if (line.find('#') == 0) { continue; }//以#开头 跳过
+
+		size_t pos = line.find(':');//找到每行的“:”号位置，之前是key之后是value  
+									//if (pos == string::npos) return false;
+		if (pos != string::npos)//如果本行有:号
+		{
+			string tmpKey = line.substr(0, pos);//取=号之前  
+
+			if (tmpKey == "appId")
+			{
+				appId = line.substr(pos + 1);
+				ret |= APPIDOK;
+				continue;
+			}
+			else if (tmpKey == "pKey")
+			{
+				privateKey = line.substr(pos + 1).append("\n");
+				bool found = false;
+				do
+				{
+					cfgFile.getline(tmp, 1000);
+					string line(tmp);
+					size_t pos = line.find("-----END");
+					if (pos != string::npos)//if found
+					{
+						privateKey.append("\n");
+						found = true;
+					}
+					privateKey.append(line);
+				} while (!found);
+				dPrint1(privateKey);
+				ret |= PKEYOK;
+				continue;
+			}
+			else if (tmpKey == "aliPubKey")
+			{
+				alipayPublicKey = line.substr(pos + 1).append("\n");
+				bool found = false;
+				do
+				{
+					cfgFile.getline(tmp, 1000);
+					string line(tmp);
+					size_t pos = line.find("-----END");
+					if (pos != string::npos)//if found
+					{
+						alipayPublicKey.append("\n");
+						found = true;
+					}
+					alipayPublicKey.append(line);
+				} while (!found);
+				dPrint1(alipayPublicKey);
+				ret |= ALIKEYOK;
+				continue;
+			}
+			else if (tmpKey == "default_url")
+			{
+				url = line.substr(pos + 1);
+				ret |= DURLOK;
+				continue;
+			}
+			else
+			{
+				dPrint("Can not recognize variable: %s \n", tmpKey.c_str());
+			}
+
+
+			//if (key == tmpKey)
+			//{
+			//	value = line.substr(pos + 1);//取=号之后  
+			//	return true;
+			//}
+		}
+
+	}
+	return ret;
+}
+
+OPENAPI string OpenapiClient::createNewTrade(string itemName, float itemPrice)
+{
+	string method = "alipay.trade.precreate";
+	contentMap = getPrecreateContent(itemName, itemPrice);
+	JsonMap respMap;
+	respMap = invoke(method, contentMap);
+	JsonMap::const_iterator iter = respMap.find("code");
+	string ret;
+	if (iter != respMap.end()) {
+		string respCode = iter->second.toString();
+		DebugLog("code:%s", respCode.c_str());
+	}
+	else {
+		DebugLog("cannot get code from response");
+		return "";
+	}
+
+	iter = respMap.find("msg");
+	if (iter != respMap.end()) {
+		string respMsg = iter->second.toString();
+		DebugLog("msg:%s", respMsg.c_str());
+	}
+	else {
+		DebugLog("cannot get msg from response");
+		return "";
+	}
+
+
+	iter = respMap.find("qr_code");
+	if (iter != respMap.end()) {
+		string respMsg = iter->second.toString();
+		DebugLog("qr_code:%s", respMsg.c_str());
+		//std::string  str = "C:\\Progra~1\\Intern~1\\iexplore ";
+		//str.append("http://api.qrserver.com/v1/create-qr-code/?data=").append(respMsg);
+		//str.append("&size = 100x100");
+		////system(str.c_str());
+		//std::string str1 = "START ";
+		//str1.append(str);
+		////system(str1.c_str());
+		////Sleep(2000);
+		ret = respMsg;
+	}
+	else {
+		DebugLog("cannot get qr_code from response");
+		return "";
+	}
+	return ret;
+}
+
+int OpenapiClient::queryTrade()
+{
+	string method = "alipay.trade.query";
+	JsonMap respMap;
+	respMap = invoke(method, contentMap);
+	JsonMap::const_iterator iter = respMap.find("trade_status");
+	if (iter != respMap.end()) {
+		string respMsg = iter->second.toString();
+		DebugLog("Return code:%s", respMsg.c_str());
+		if (respMsg == "TRADE_SUCCESS")
+			return 1;
+		if (respMsg == "TRADE_CLOSED")
+			return 0;
+	}
+	else {
+		return -1;
+		DebugLog("cannot get trade_status from response.");
+	}
+}
+int OpenapiClient::cancelTrade()
+{
+	string method = "alipay.trade.cancel";
+	JsonMap respMap = invoke(method, contentMap);
+	JsonMap::const_iterator iter = respMap.find("code");
+	if (iter != respMap.end()) {
+		string respMsg = iter->second.toString();
+		DebugLog("Return code:%s", respMsg.c_str());
+		//OutputDebugStringA(respMsg.append("\n").c_str());
+		if (respMsg == "10000")
+			DebugLog("Time out, Trade canceled.");
+	}
+	else {
+		DebugLog("cannot get code from response");
+	}
+	return 1;
 }

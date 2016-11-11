@@ -1,8 +1,8 @@
 #include "WeixinPayAPI.h"
-
+#include "openapi/http/http_client.h"
 WeixinPayAPI::WeixinPayAPI()
 {
-	signature();
+	getIP();
 }
 
 
@@ -10,25 +10,29 @@ WeixinPayAPI::~WeixinPayAPI()
 {
 }
 
+
 int WeixinPayAPI::getIP()
 {
-	deviceIP = "12.12.12.12";
+	deviceIP = "24.87.136.203";
 	return 0;
 }
-#include <time.h>
-int WeixinPayAPI::getTradeNo()
+#include <sstream>//for std::ostringstream
+int WeixinPayAPI::getTradeNoAndNonce_str()
 {
-	time_t rawtime;
-	struct tm * timeinfo;
-	char buffer[128];
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-	strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S", timeinfo);
-	std::string retstr(buffer);
-	out_trade_no = retstr;
-	//printf("Trade No = %s\n", retstr.c_str());
-	return 0;
+	SYSTEMTIME time;
+	GetLocalTime(&time);
+	char buf[64];
+	sprintf(buf, "%4d%2d%2d%2d%2d%2d%3d", time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+	out_trade_no = std::string(buf);
+	dPrint1(out_trade_no);
 
+	memset(buf, 0, 64);
+	
+	srand(time.wMilliseconds);
+	sprintf(buf, "%4d%4d", rand(), rand());
+	nonce_str = std::string(buf);
+	dPrint1(nonce_str);
+	return 0;
 }
 #include "md5.h"
 int WeixinPayAPI::signature()
@@ -46,17 +50,48 @@ int WeixinPayAPI::signature()
 	string stringSignTemp;
 	stringSignTemp = stringA += "key=";
 	stringSignTemp += key;
-	LOG0(stringSignTemp.c_str());
-	char out[32];
+	char out[33];
 	char *in = (char*)stringSignTemp.c_str();
-	int l = stringSignTemp.length();
-	GetMd5KeyString(in, l , out);
+	int len = stringSignTemp.length();
+	GetMd5KeyString(in, len , out);
+	dPrint1(stringSignTemp);
 	sign = string((const char*)out);
-	LOG0(sign.c_str());
-	return 0;
+	dPrint1(sign);
+	return 1;
 }
-int main(int argc, char *argv[])
+std::string WeixinPayAPI::getstr()
 {
-	WeixinPayAPI *api = new WeixinPayAPI();
+	getTradeNoAndNonce_str();
+	signature();
+	string ret="<xml>";
+	for (int i = 0; i < PAIRCNT; i++)
+	{
+		ret += "<";
+		ret += pairs[i].key;
+		ret += ">";
+		ret += *pairs[i].value;
+		ret += "</";
+		ret += pairs[i].key;
+		ret += ">";
+	}
+	ret += "</xml>";
+	return ret;
+}
+std::string  WeixinPayAPI::sendRequest()
+{
+
+	string str = getstr();
+	dPrint1(str);
+	HttpClient httpClient;
+	//string url = unifiedorderURL.append("?").append(str);
+	string responseStr = httpClient.sendSyncRequest(unifiedorderURL, "<xml>sdfasdf</xml>");
+	dPrint1(responseStr);
+	return responseStr;
+}
+int main1(int argc, char *argv[])
+{
+	WeixinPayAPI api;
+	api.sendRequest();
+	system("pause");
 	return 0;
 }

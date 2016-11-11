@@ -18,10 +18,12 @@ using std::string;
 using std::list;
 using std::map;
 
+//#define _DEBUG
+
 #ifdef _DEBUG
 #define DebugLog(format,...)    printf("[" __FILE__ ":%04d]\n" format "\n\n", __LINE__, ##__VA_ARGS__)
 #else
-#define DebugLog(format,...)     // printf("[" __FILE__ ":%04d]\n" format "\n\n", __LINE__, ##__VA_ARGS__)
+#define DebugLog(format,...)
 #endif
 
 typedef map<string, string> HeaderMap;

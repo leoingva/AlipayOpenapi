@@ -32,6 +32,7 @@ size_t HttpClient::write_data(void *ptr, size_t size, size_t nmemb, void *stream
     int length = size * nmemb;
     HttpClient *client = (HttpClient *)stream;
     client->responseEntity = string((char *)ptr, length);
+	//DebugLog("receive:%s", client->responseEntity.c_str());
     return length;
 }
 
@@ -59,9 +60,10 @@ string HttpClient::sendSyncRequest(const string &url,
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST,   0L);
     curl_easy_setopt(curl, CURLOPT_HEADER,           1);
     curl_easy_setopt(curl, CURLOPT_URL,              url.c_str());
-    curl_easy_setopt(curl, CURLOPT_POST,             1);
+    curl_easy_setopt(curl, CURLOPT_POST,             1);//0 = disable post
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS,       requestEntity.c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER,       headerlist);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER,       headerlist); 
+	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "curlposttest.cookie");
 
     if (!proxyIp.empty() && !proxyPort.empty()) {
         string proxyStr = proxyIp;
@@ -83,7 +85,7 @@ string HttpClient::sendSyncRequest(const string &url,
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION,    write_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA,        this);
 
-    curl_easy_perform(curl);
+	CURLcode response = curl_easy_perform(curl);
     curl_slist_free_all(headerlist);
 
     DebugLog("resv:%s", responseEntity.c_str());
